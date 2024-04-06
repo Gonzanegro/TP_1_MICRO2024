@@ -1,0 +1,49 @@
+<ASSEMBLER_INFO>
+ <VERSION>2.2.8</VERSION>
+ <DEVICE>"ATmega328P"</DEVICE>
+ <WORKING_DIR>E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\Debug</WORKING_DIR>
+ <INCLUDE_PATH>
+  <DIR>E:/Micros Programas\MicrochipStudio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc</DIR>
+  <DIR>E:\Micros Programas\MicrochipStudio\7.0\toolchain\avr8\avrassembler\Include</DIR>
+  <DIR></DIR>
+ </INCLUDE_PATH>
+ <SOURCE_FILE>E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\main.asm</SOURCE_FILE>
+ <INCLUDED_FILES>
+  <FILE>E:/Micros Programas\MicrochipStudio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc\m328Pdef.inc</FILE>
+ </INCLUDED_FILES>
+ <OBJECT_FILES>
+  <FILE>E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\Debug\Tp_1.obj</FILE>
+ </OBJECT_FILES>
+ <HEX_FILES>
+  <FILE>Tp_1.hex</FILE>
+ </HEX_FILES>
+ <OUTPUT_FILES>
+  <FILE>Tp_1.map</FILE>
+  <FILE>Tp_1.lss</FILE>
+ </OUTPUT_FILES>
+ <LABELS>
+  <econfig><FILE>E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\main.asm</FILE><LINE>40</LINE></econfig>
+  <const2><FILE>E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\main.asm</FILE><LINE>43</LINE></const2>
+  <statboot><FILE>E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\main.asm</FILE><LINE>48</LINE></statboot>
+  <t50ms><FILE>E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\main.asm</FILE><LINE>49</LINE></t50ms>
+  <addrrx><FILE>E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\main.asm</FILE><LINE>51</LINE></addrrx>
+  <RXBUF><FILE>E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\main.asm</FILE><LINE>52</LINE></RXBUF>
+  <start><FILE>E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\main.asm</FILE><LINE>203</LINE></start>
+  <TIMER1_COMPA><FILE>E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\main.asm</FILE><LINE>83</LINE></TIMER1_COMPA>
+  <out_TIMER1_OVF><FILE>E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\main.asm</FILE><LINE>94</LINE></out_TIMER1_OVF>
+  <ini_ports><FILE>E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\main.asm</FILE><LINE>106</LINE></ini_ports>
+  <ini_timer1><FILE>E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\main.asm</FILE><LINE>114</LINE></ini_timer1>
+  <div16u><FILE>E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\main.asm</FILE><LINE>133</LINE></div16u>
+  <d16u_1><FILE>E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\main.asm</FILE><LINE>139</LINE></d16u_1>
+  <d16u_2><FILE>E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\main.asm</FILE><LINE>146</LINE></d16u_2>
+  <d16u_3><FILE>E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\main.asm</FILE><LINE>157</LINE></d16u_3>
+  <ini_serie0><FILE>E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\main.asm</FILE><LINE>161</LINE></ini_serie0>
+  <do10ms><FILE>E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\main.asm</FILE><LINE>164</LINE></do10ms>
+  <testDbBtn><FILE>E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\main.asm</FILE><LINE>172</LINE></testDbBtn>
+  <buttonDown><FILE>E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\main.asm</FILE><LINE>179</LINE></buttonDown>
+  <buttonUp><FILE>E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\main.asm</FILE><LINE>194</LINE></buttonUp>
+  <buttonFalling><FILE>E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\main.asm</FILE><LINE>190</LINE></buttonFalling>
+  <loop><FILE>E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\main.asm</FILE><LINE>212</LINE></loop>
+  <toggleLed><FILE>E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\main.asm</FILE><LINE>221</LINE></toggleLed>
+ </LABELS>
+</ASSEMBLER_INFO>
