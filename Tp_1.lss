@@ -1,5 +1,5 @@
 
-AVRASM ver. 2.2.8  E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\main.asm Wed Mar 27 12:18:11 2024
+AVRASM ver. 2.2.8  E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\main.asm Tue May 07 16:35:53 2024
 
 [builtin](2): Including file 'E:/Micros Programas\MicrochipStudio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc\m328Pdef.inc'
 [builtin](2): Including file 'E:/Micros Programas\MicrochipStudio\7.0\Packs\atmel\ATmega_DFP\1.7.374\avrasm\inc\m328Pdef.inc'
@@ -999,11 +999,24 @@ AVRASM ver. 2.2.8  E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\main.asm Wed Mar
                                  .equ	anno=24
                                  .equ	mes=3
                                  .equ	dia=18
-                                 
+                                 .equ	M=0x4D ;77
+                                 .equ	O=0x4F;79
+                                 .equ	D=0x44;68
+                                 .equ	N0=0x30;48
+                                 .equ	N1=0x31;49
+                                 .equ	N2=0x32;50
+                                 .equ	N3=0x33;51
+                                 .equ	N4=0x34;52
+                                 .equ	N5=0x35;53
+                                 .equ	N6=0x36;54
+                                 .equ	N7=0x37;55
+                                 .equ	N8=0x38;56
+                                 .equ	N9=0x39;57
+                                 .equ	NULL =0x00;0
                                  ;**** GPIOR0 como regsitros de banderas ****
                                  .equ LASTSTATEBTN = 0	;GPIOR0<0>: ultimo estado del pulsador
                                  .equ BTNPRESSED = 1;GPIOR0<1>:flag de prueba para saber si pasaron 100ms 
-                                 .equ WASHERE = 2;GPIOR0<2>:  
+                                 .equ DATAREADY = 2;GPIOR0<2>: flag que uso para las subrutinas de enviar datos   
                                  ;GPIOR0<3>:  
                                  ;GPIOR0<4>:  
                                  ;GPIOR0<5>:  
@@ -1034,17 +1047,18 @@ AVRASM ver. 2.2.8  E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\main.asm Wed Mar
                                  ;segmento de Datos SRAM
                                  .dseg ;reserva datos en la ram, nada mas
 000100                           statboot:	.BYTE	1
-000101                           t50ms:		.BYTE	1 	
-                                 
-000102                           addrrx:		.BYTE	2 ; variable que esta en la ram y ocupa 2 byte
-000104                           RXBUF:		.BYTE	24 ; similar a array de 24b
-                                 
+000101                           t50ms:		.BYTE	1 ;variable que se resetea cada 50ms	
+000102                           state:		.BYTE	1 ;variable para hacer switch entre estados 
+000103                           addrrx:		.BYTE	2 ; variable que esta en la ram y ocupa 2 byte
+000105                           TXBUF:		.BYTE	8 ; voy a utilizar 6 bytes para poner "MODO 0-10" 
+00010d                           RXBUF:		.BYTE	24 ; similar a array de 24b
+000125                           indexTx:	.BYTE	1 ; variable para el indice del buffer de transmision 
                                  
                                  
                                  ;segmento de C?digo
                                  .cseg
                                  .org	0x00 ;escribe jmp start en 00
-000000 940c 0094                 	jmp	start
+000000 940c 0156                 	jmp	start
                                  .org 0x16 ; posicion del vector de interrupciones 
 000016 940c 0034                 	jmp TIMER1_COMPA 
                                  
@@ -1052,11 +1066,22 @@ AVRASM ver. 2.2.8  E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\main.asm Wed Mar
                                  
                                  .org 0x34 ;inicia el programa en la posciion de memoria 36
                                  
-                                 
-                                 ;constantes (guardo datos en la flash para ahorrar espacio)
-                                 ;consts:		.DB 0, 255, 0b01010101, -128, 0xaa
-                                 ;varlist:	.DD 0, 0xfadebabe, -2147483648, 1 << 30
-                                 
+                                 ;**** Constantes en FLASH ****
+                                 ;PONGO EL VALOR EN ASCII DE LAS LETRAS QUE VOY A USAR PARA LA TRANSMISION 
+                                 ;M:	.DB 0x4D ;77
+                                 ;O:	.DB 0x4F;79
+                                 ;D:	.DB 0x44;68
+                                 ;N0:	.DB 0x30;48
+                                 ;N1:	.DB 0x31;49
+                                 ;N2:	.DB 0x32;50
+                                 ;N3:	.DB 0x33;51
+                                 ;N4:	.DB 0x34;52
+                                 ;N5:	.DB 0x35;53
+                                 ;N6:	.DB 0x36;54
+                                 ;N7:	.DB 0x37;55
+                                 ;N8:	.DB 0x38;56
+                                 ;N9:	.DB 0x39;57
+                                 ;NULL: .DB 0x00;0
                                  
                                  ;Servicio de interrupciones
                                  ;serv_rx0:
@@ -1091,126 +1116,378 @@ AVRASM ver. 2.2.8  E:\MECA\4_Anio\MICRO2024\PROYECTOS\Tp_1\Tp_1\main.asm Wed Mar
                                  
                                  ;PORTB
                                  
-                                 ini_ports:
+                                 ini_ports:;inicializa la GPIO
 000044 e200                      	ldi r16,0b00100000
 000045 b904                      	out DDRB,r16 ; para La salida PB5
 000046 2e00                      	mov r0,r16
 000047 e110                      	ldi r17,0b00010000
-000048 b915                      	out PORTB,r17 ; para el pulsador ENTRADA PB4
-                                 	
+000048 b915                      	out PORTB,r17 ; para el pulsador ENTRADA PB4	
 000049 9508                      	ret
+                                 ini_serie0: ; inicializa la usart0 
+                                 	; de esta forma se inicializa la USART en modo transmision para 8 bits de datos a 115200 bps (U2X0 en 1 y UBBRN en 16) con cristal de 16MHz
+00004a e002                      	ldi	r16, (1 << U2X0) ;carga en el r16 1 desplazado a U2X0 ese bit va en 1 para doblar la velocidad en transmision asincrona
+00004b 9300 00c0                 	sts	UCSR0A, r16 ; pone ese bit en 1 en el UCSR0A para
+00004d e008                      	ldi	r16, (1 << TXEN0) ; pone en r16 en 1 el bit desplazado TXEN0 este bit habilita la transmision 
+00004e 9300 00c1                 	sts	UCSR0B, r16 ; lo carga en UCSR0B
+000050 e006                      	ldi	r16, (1 << UCSZ01) | (1 << UCSZ00) ; define el formato de los datos a enviar en este caso 8 bits
+000051 9300 00c2                 	sts	UCSR0C, r16 ; pone en 1 los bit UCSZ01 y UCSZ00 del USR0C
+000053 e100                      	ldi	r16, 16
+000054 9300 00c4                 	sts	UBRR0L, r16 ; Pone el UBRR0L en 0001 0000 (para setear el baudrate)
+000056 2700                      	clr	r16
+000057 9300 00c5                 	sts	UBRR0H, r16 ; pone el UBRR0H en cero (del b12 al 15 son reservados) 
+000059 9508                      	ret   
+                                 
                                  ini_timer1:; para inicializar al timer 
-00004a e000                      	ldi	r16, 0x00
-00004b 9300 0080                 	sts	TCCR1A, r16
-00004d e002                      	ldi r16,high(625)
-00004e 9300 0089                 	sts OCR1AH,r16 ; parte alta del comparador
-000050 e701                      	ldi r16,low(625)
-000051 9300 0088                 	sts OCR1AL,r16 ; parte baja del comparador 
-000053 e002                      	ldi	r16, 0b00000010; habilita el compare A 
-000054 9300 006f                 	sts	TIMSK1, r16
-000056 9100 0016                 	lds	r16, TIFR1; CONSULTAR SUPONGO SALVA ESTADO TIFR1
-000058 9300 0016                 	sts	TIFR1, r16
+00005a e000                      	ldi	r16, 0x00
+00005b 9300 0080                 	sts	TCCR1A, r16
+00005d e002                      	ldi r16,high(625)
+00005e 9300 0089                 	sts OCR1AH,r16 ; parte alta del comparador
+000060 e701                      	ldi r16,low(625)
+000061 9300 0088                 	sts OCR1AL,r16 ; parte baja del comparador 
+000063 e002                      	ldi	r16, 0b00000010; habilita el compare A 
+000064 9300 006f                 	sts	TIMSK1, r16
+000066 9100 0016                 	lds	r16, TIFR1; CONSULTAR SUPONGO SALVA ESTADO TIFR1
+000068 9300 0016                 	sts	TIFR1, r16
                                  	
-00005a e00c                      	ldi r16,0b00001100
-00005b 9300 0081                 	sts TCCR1B,r16; setea el timer como CTC preescalado 256
-00005d 9508                      	ret
+00006a e00c                      	ldi r16,0b00001100
+00006b 9300 0081                 	sts TCCR1B,r16; setea el timer como CTC preescalado 256
+00006d 9508                      	ret
                                  
                                  ;rutinas matematicas
                                  ;(R15:R14)/(R13:R12) = (R15:R14) rest (R11:R10) 
                                  
                                  div16u: ;
-00005e 930f                      	push	r16
-00005f 24aa                      	clr	r10
-000060 24bb                      	clr	r11
-000061 e101                      	ldi	r16, 17
-000062 9488                      	clc	
+00006e 930f                      	push	r16
+00006f 24aa                      	clr	r10
+000070 24bb                      	clr	r11
+000071 e101                      	ldi	r16, 17
+000072 9488                      	clc	
                                  d16u_1: ;
-000063 1cee                      	rol	r14
-000064 1cff                      	rol	r15
-000065 950a                      	dec	r16
-000066 f411                      	brne	d16u_2
-000067 910f                      	pop	r16
-000068 9508                      	ret
+000073 1cee                      	rol	r14
+000074 1cff                      	rol	r15
+000075 950a                      	dec	r16
+000076 f411                      	brne	d16u_2
+000077 910f                      	pop	r16
+000078 9508                      	ret
                                  d16u_2: ;
-000069 1caa                      	rol	r10
-00006a 1cbb                      	rol	r11
-00006b 18ac                      	sub	r10, r12
-00006c 08bd                      	sbc	r11, r13
-00006d feb7                      	sbrs	r11, 7
-00006e c004                      	rjmp	d16u_3	
-00006f 0cac                      	add	r10, r12
-000070 1cbd                      	adc	r11, r13
-000071 9488                      	clc	
-000072 cff0                      	rjmp	d16u_1
+000079 1caa                      	rol	r10
+00007a 1cbb                      	rol	r11
+00007b 18ac                      	sub	r10, r12
+00007c 08bd                      	sbc	r11, r13
+00007d feb7                      	sbrs	r11, 7
+00007e c004                      	rjmp	d16u_3	
+00007f 0cac                      	add	r10, r12
+000080 1cbd                      	adc	r11, r13
+000081 9488                      	clc	
+000082 cff0                      	rjmp	d16u_1
                                  d16u_3:;
-000073 9408                      	sec	
-000074 cfee                      	rjmp	d16u_1
+000083 9408                      	sec	
+000084 cfee                      	rjmp	d16u_1
                                  
-                                 ini_serie0:
-000075 9508                      	ret
                                  
                                  do10ms:
-000076 98f7                      	cbi GPIOR0, IS10MS ; RESETEA la FLAG DE LOS 10ms
-000077 9100 0101                 	lds r16,t50ms;
-000079 950a                      	dec r16; le resta uno a t100ms
-00007a 9300 0101                 	sts t50ms,r16;lo devuelve
-00007c f409                      	brne	PC+2 ; si es no es igual a 0 hace un branch del PC+2 sino hace el rjump
-00007d c001                      	rjmp	testDbBtn; va a testDbBtn
-00007e 9508                      	ret
+000085 98f7                      	cbi GPIOR0, IS10MS ; RESETEA la FLAG DE LOS 10ms
+000086 9100 0101                 	lds r16,t50ms;
+000088 950a                      	dec r16; le resta uno a t50ms
+000089 9300 0101                 	sts t50ms,r16;lo devuelve
+00008b f409                      	brne	PC+2 ; si es no es igual a 0 hace un branch del PC+2 sino hace el rjump
+00008c c001                      	rjmp	testDbBtn; va a testDbBtn
+00008d 9508                      	ret
                                  testDbBtn:; procedimiento para hacer el debounce 
-00007f e005                      	ldi	r16, 5 ; pone 10 en el r16
-000080 9300 0101                 	sts t50ms,r16; resetea la variable de los 100ms 
-000082 99f1                      	sbic GPIOR0,BTNPRESSED; si la flag esta sin hacer,skip
-000083 c001                      	rjmp buttonDown; si la flag esta hecha 
-000084 c00a                      	rjmp buttonUp; va a buttonUp		
-                                 
-                                 buttonDown:; si ya salto un ciclo y paso por falling entra a down  
-000085 991c                      	 sbic PINB,PB4 ; si el PB5 sigue en bajo hace skip
-000086 c008                      	 rjmp buttonUp		
-                                 	;si hizo skip significa que el PB5 sigue abajo (boton presionado)						
-000087 99f2                      	sbic GPIOR0,WASHERE;pregunta si ya estuvo aqui 
-000088 9508                      	ret;
-000089 9bf6                      	sbis GPIOR0,ISNEWBTN; SI LA FLAG ESTA SIN hacer	  
-00008a 9af6                      	sbi GPIOR0,ISNEWBTN; setea la flag de hacer algo 
-00008b 9af2                      	sbi GPIOR0,WASHERE;
-00008c 9508                      	ret;sale 
-                                 		
-                                 buttonFalling:; entra si el PB5 esta en bajo
-00008d 9af1                      	sbi GPIOR0,BTNPRESSED;setea la flag y sale
-00008e 9508                      	ret  
+00008e e005                      	ldi	r16, 5 ; pone 5 en el r16
+00008f 9300 0101                 	sts t50ms,r16; resetea la variable de los 50ms 
                                  	
+000091 99f1                      	sbic GPIOR0,BTNPRESSED;si la flag esta hecha va a Down, sino salta a ver el estado del boton 
+000092 c006                      	rjmp buttonDown; 
+000093 9b1c                      	sbis PINB,PB4; si el boton esta sin presionar salta a button up
+000094 c007                      	rjmp buttonFalling;		si esta presionado salta a falling
+000095 c008                      	rjmp buttonUp;
+                                 
+                                 buttonRising:
+000096 98f1                      	cbi GPIOR0,BTNPRESSED ; resetea la flag de pressed	
+000097 9af6                      	sbi GPIOR0,ISNEWBTN ;setea la flag de evento 
+000098 9508                      	ret
+                                 buttonDown:; si ya salto un ciclo y paso por falling entra a down  
+000099 9b1c                      	sbis PINB,PB4;si el pulsador cambio de estado va a rising 
+00009a 9508                      	ret;sino hace ret y queda atrapado aca 
+00009b cffa                      	rjmp buttonRising
+                                 buttonFalling:; entra si el PB5 esta en bajo
+00009c 9af1                      	sbi GPIOR0,BTNPRESSED;setea la flag
+00009d 9508                      	ret   	
                                  buttonUp: ; viene si la flag button esta en 0
-00008f 9b1c                      	sbis PINB,PB4; salta si el PB5 esta hecho (BOTON SIN PRESIONAR)  
-000090 cffc                      	rjmp buttonFalling; (SI ESTA PRESIONADO SALTA A FALLING)
-000091 98f1                      	cbi GPIOR0,BTNPRESSED;pone la flag en 0 y sale  
-000092 98f2                      	cbi GPIOR0,WASHERE; (RESETEA LA FLAG DE QUE YA PASO POR BUTTONDOWN)
-000093 9508                      ret	
-                                 
-                                 
+00009e 99f1                      	sbic GPIOR0,BTNPRESSED
+00009f 98f1                      	cbi GPIOR0,BTNPRESSED;pone la flag en 0 y sale  
+0000a0 9508                      ret	
+                                 changeMode:
+0000a1 9110 0102                 	lds r17,state; carga en el r17 el estado igual
+0000a3 9513                      	inc r17; incrementa en 1 la variable de estado  
+0000a4 9310 0102                 	sts state,r17;lo devuelve
+0000a6 e02b                      	ldi r18,11;carga el r18 en 11 para ver si se desbordo el modo 
+0000a7 1712                      	cp r17,r18
+0000a8 f421                      	brne PC+5 ; si es son iguales hace un branch del PC+5 sino resetea la variable antes de salir 
+0000a9 e010                      	ldi r17,0
+0000aa 9310 0102                 	sts state,r17;
+0000ac c09b                      	rjmp iddle;salta al estado 0
+                                 	;comparacion para ver en que estado se encuentra ahora y enviar el mensaje 
+                                 	;;FUNCIONA COMO UNA MEF
+0000ad 9110 0102                 	lds r17,state; carga en el r17 el estado nuevo
+0000af e021                      	ldi r18,1;pone el r18 en 1 
+0000b0 1712                      	cp r17,r18; compara el modo con 1 
+0000b1 f409                      	brne PC+2 ; si no son iguales incrementa el PC en 2 
+0000b2 c024                      	rjmp state1; si son iguales va a state 1 
+                                 	
+0000b3 e022                      	ldi r18,2;pone el r18 en 2 
+0000b4 1712                      	cp r17,r18; compara el modo con 2 
+0000b5 f409                      	brne PC+2 ; si no son iguales incrementa el PC en 2 
+0000b6 c02b                      	rjmp state2; si son iguales va a state 1 
+                                 	
+0000b7 e023                      	ldi r18,3;pone el r18 en 3 
+0000b8 1712                      	cp r17,r18; compara el modo con 3 
+0000b9 f409                      	brne PC+2 ; si no son iguales incrementa el PC en 2 
+0000ba c032                      	rjmp state3; si son iguales va a state 3 
+                                 	
+0000bb e024                      	ldi r18,4;pone el r18 en 4 
+0000bc 1712                      	cp r17,r18; compara el modo con 4 
+0000bd f409                      	brne PC+2 ; si no son iguales incrementa el PC en 2 
+0000be c039                      	rjmp state4; si son iguales va a state 4 
+                                 	
+0000bf e025                      	ldi r18,5;pone el r18 en 5 
+0000c0 1712                      	cp r17,r18; compara el modo con 5 
+0000c1 f409                      	brne PC+2 ; si no son iguales incrementa el PC en 2 
+0000c2 c040                      	rjmp state5; si son iguales va a state 5 
+                                 	
+0000c3 e026                      	ldi r18,6;pone el r18 en 6 
+0000c4 1712                      	cp r17,r18; compara el modo con 6 
+0000c5 f409                      	brne PC+2 ; si no son iguales incrementa el PC en 2 
+0000c6 c047                      	rjmp state6; si son iguales va a state 6 
+                                 	
+0000c7 e027                      	ldi r18,7;pone el r18 en 7 
+0000c8 1712                      	cp r17,r18; compara el modo con 7 
+0000c9 f409                      	brne PC+2 ; si no son iguales incrementa el PC en 2 
+0000ca c04e                      	rjmp state7; si son iguales va a state 7 
+                                 	
+0000cb e028                      	ldi r18,8;pone el r18 en 8 
+0000cc 1712                      	cp r17,r18; compara el modo con 8 
+0000cd f409                      	brne PC+2 ; si no son iguales incrementa el PC en 2 
+0000ce c055                      	rjmp state8; si son iguales va a state 8 
+                                 	
+0000cf e029                      	ldi r18,9;pone el r18 en 9 
+0000d0 1712                      	cp r17,r18; compara el modo con 9 
+0000d1 f409                      	brne PC+2 ; si no son iguales incrementa el PC en 2 
+0000d2 c05c                      	rjmp state9; si son iguales va a state 9 
+                                 	
+0000d3 e02a                      	ldi r18,10;pone el r18 en 10
+0000d4 1712                      	cp r17,r18; compara el modo con 10 
+0000d5 f409                      	brne PC+2 ; si no son iguales incrementa el PC en 2 
+0000d6 c063                      	rjmp state10; si son iguales va a state 10
+                                 	
+                                 	state1: ;carga el buffer con el 1 en la poscion de modo y luego sale 
+0000d7 e331                      	ldi r19,N1;pone el N1
+0000d8 9330 0109                 	sts TXBUF+4,r19; carga en el buffer
+0000da e03a                      	ldi r19,'\n' ; para el final de linea 
+0000db 9330 010a                 	sts TXBUF+5,r19
+0000dd 9af2                      	sbi GPIOR0,DATAREADY; setea la flag para la transmision antes de salir 
+0000de e030                      	ldi r19,0
+0000df 9330 0125                 	sts indexTx,r19 ; pone en cero el indice del buffer de transmision 
+0000e1 9508                      	ret
+                                 	state2:
+0000e2 e332                      	ldi r19,N2;pone el N2
+0000e3 9330 0109                 	sts TXBUF+4,r19; carga en el buffer
+0000e5 e03a                      	ldi r19,'\n' ; para el final de linea 
+0000e6 9330 010a                 	sts TXBUF+5,r19
+0000e8 9af2                      	sbi GPIOR0,DATAREADY; setea la flag para la transmision antes de salir 
+0000e9 e030                      	ldi r19,0
+0000ea 9330 0125                 	sts indexTx,r19 ; pone en cero el indice del buffer de transmision 
+0000ec 9508                      	ret
+                                 	state3:
+0000ed e333                      	ldi r19,N3;pone el N3
+0000ee 9330 0109                 	sts TXBUF+4,r19; carga en el buffer
+0000f0 e03a                      	ldi r19,'\n' ; para el final de linea 
+0000f1 9330 010a                 	sts TXBUF+5,r19
+0000f3 9af2                      	sbi GPIOR0,DATAREADY; setea la flag para la transmision antes de salir 
+0000f4 e030                      	ldi r19,0
+0000f5 9330 0125                 	sts indexTx,r19 ; pone en cero el indice del buffer de transmision 
+0000f7 9508                      	ret
+                                 	state4:
+0000f8 e334                      	ldi r19,N4;pone el N4
+0000f9 9330 0109                 	sts TXBUF+4,r19; 
+0000fb e03a                      	ldi r19,'\n' ; para el final de linea 
+0000fc 9330 010a                 	sts TXBUF+5,r19
+0000fe 9af2                      	sbi GPIOR0,DATAREADY; setea la flag para la transmision antes de salir 
+0000ff e030                      	ldi r19,0
+000100 9330 0125                 	sts indexTx,r19 ; pone en cero el indice del buffer de transmision 
+000102 9508                      	ret
+                                 	state5:
+000103 e335                      	ldi r19,N5;pone el N5
+000104 9330 0109                 	sts TXBUF+4,r19; 
+000106 e03a                      	ldi r19,'\n' ; para el final de linea 
+000107 9330 010a                 	sts TXBUF+5,r19
+000109 9af2                      	sbi GPIOR0,DATAREADY; setea la flag para la transmision antes de salir 
+00010a e030                      	ldi r19,0
+00010b 9330 0125                 	sts indexTx,r19 ; pone en cero el indice del buffer de transmision 
+00010d 9508                      	ret
+                                 	state6:
+00010e e336                      	ldi r19,N6;pone el N6
+00010f 9330 0109                 	sts TXBUF+4,r19; 
+000111 e03a                      	ldi r19,'\n' ; para el final de linea 
+000112 9330 010a                 	sts TXBUF+5,r19
+000114 9af2                      	sbi GPIOR0,DATAREADY; setea la flag para la transmision antes de salir 
+000115 e030                      	ldi r19,0
+000116 9330 0125                 	sts indexTx,r19 ; pone en cero el indice del buffer de transmision 
+000118 9508                      	ret
+                                 	state7:
+000119 e337                      	ldi r19,N7;pone el N7
+00011a 9330 0109                 	sts TXBUF+4,r19; 
+00011c e03a                      	ldi r19,'\n' ; para el final de linea 
+00011d 9330 010a                 	sts TXBUF+5,r19
+00011f 9af2                      	sbi GPIOR0,DATAREADY; setea la flag para la transmision antes de salir 
+000120 e030                      	ldi r19,0
+000121 9330 0125                 	sts indexTx,r19 ; pone en cero el indice del buffer de transmision 
+000123 9508                      	ret
+                                 	state8:
+000124 e338                      	ldi r19,N8;pone el N8
+000125 9330 0109                 	sts TXBUF+4,r19
+000127 e03a                      	ldi r19,'\n' ; para el final de linea 
+000128 9330 010a                 	sts TXBUF+5,r19
+00012a 9af2                      	sbi GPIOR0,DATAREADY; setea la flag para la transmision antes de salir 
+00012b e030                      	ldi r19,0
+00012c 9330 0125                 	sts indexTx,r19 ; pone en cero el indice del buffer de transmision 
+00012e 9508                      	ret
+                                 	state9:
+00012f e339                      	ldi r19,N9;pone el N9
+000130 9330 0109                 	sts TXBUF+4,r19; carga al buffer
+000132 e03a                      	ldi r19,'\n' ; para el final de linea 
+000133 9330 010a                 	sts TXBUF+5,r19
+000135 9af2                      	sbi GPIOR0,DATAREADY; setea la flag para la transmision antes de salir 
+000136 e030                      	ldi r19,0
+000137 9330 0125                 	sts indexTx,r19 ; pone en cero el indice del buffer de transmision 
+000139 9508                      	ret
+                                 	state10: ; carga el 1 y el 0 
+00013a e331                      	ldi r19,N1;pone el N1
+00013b 9330 0109                 	sts TXBUF+4,r19; pone el 1 en el buffer
+00013d e330                      	ldi r19,N0
+00013e 9330 010a                 	sts TXBUF+5,r19;carga 0 en el buffer
+000140 e03a                      	ldi r19,'\n' ; para el final de linea 
+000141 9330 010b                 	sts TXBUF+6,r19
+000143 9af2                      	sbi GPIOR0,DATAREADY; setea la flag para la transmision antes de salir 
+000144 e030                      	ldi r19,0
+000145 9330 0125                 	sts indexTx,r19 ; pone en cero el indice del buffer de transmision 
+000147 9508                      	ret
+                                 	iddle: ; vuelve a poner el 0 delante y NULL atras 
+000148 e330                      	ldi r19,N0;pone el N1
+000149 9330 0109                 	sts TXBUF+4,r19; carga el cero en el buffer 
+00014b e03a                      	ldi r19,'\n' ; para el final de linea 
+00014c 9330 010a                 	sts TXBUF+5,r19
+00014e e030                      	ldi r19,NULL ; final de la cadena de caracteres  
+00014f 9330 010b                 	sts TXBUF+6,r19
+000151 9af2                      	sbi GPIOR0,DATAREADY; setea la flag para la transmision antes de salir 
+000152 e030                      	ldi r19,0
+000153 9330 0125                 	sts indexTx,r19 ; pone en cero el indice del buffer de transmision 
+000155 9508                      	ret
                                  ;Like a main in C
-                                 start:
-000094 94f8                      	cli
-000095 940e 0044                 	call	ini_ports
-                                 	;call	ini_serie0
-000097 940e 004a                 	call	ini_timer1; llama al que inicializa el timer 
-000099 98f7                      	cbi GPIOR0,IS10MS
-00009a e005                      	ldi r16,5
-00009b 9300 0101                 	sts t50ms,r16; inicializa t100ms en 10 
-00009d 9478                      	sei
-                                 loop:					
-00009e 9bf7                      	sbis GPIOR0,IS10MS	
-00009f 940c 009e                 	jmp loop
-0000a1 940e 0076                 	call do10ms
-0000a3 99f6                      	sbic GPIOR0,ISNEWBTN;PREGUNTA POR LA FLAG DE HACER ALGO
-0000a4 940e 00a9                 	call toggleLed; HACE TOGGLE
-0000a6 98f6                      	cbi GPIOR0,ISNEWBTN; (RESETEA LA FLAG DE HACER ALGO, POR SI YA SE VOLVIO A SOLTAR EL BOTON )
-0000a7 940c 009e                 	jmp loop
                                  
-                                 toggleLed:; subrutina para cambiar el estado del led 
-0000a9 b105                      	in r16,PORTB
-0000aa 2500                      	eor r16,r0
-0000ab b905                      	out PORTB,r16
-0000ac 9508                      ret
+                                 
+                                 start:
+000156 94f8                      	cli
+000157 940e 0044                 	call	ini_ports
+000159 940e 004a                 	call	ini_serie0 ; inicializa el puerto serie 0 
+00015b 940e 005a                 	call	ini_timer1; llama al que inicializa el timer 
+00015d 98f7                      	cbi GPIOR0,IS10MS
+00015e e005                      	ldi r16,5
+00015f 9300 0101                 	sts t50ms,r16; inicializa t100ms en 10 
+000161 e000                      	ldi r16,0 ;pone en 0 el r16
+000162 9300 0102                 	sts state,r16; inicializa el estado en 0 
+                                 	;;CARGA EL BUFFER DE TRANSMISION CON MODO (CONSTANTES SIEMPRE) Y pone el 0 
+000164 e40d                      	ldi r16,M;
+000165 e41f                      	ldi r17,O
+000166 e424                      	ldi r18,D
+000167 e330                      	ldi r19,N0
+000168 9300 0105                 	sts TXBUF+0,r16 ;pone la M al inicio
+00016a 9310 0106                 	sts TXBUF+1,r17;la o 
+00016c 9320 0107                 	sts TXBUF+2,r18; la d
+00016e 9310 0108                 	sts TXBUF+3,r17;la o de vuelta 
+000170 9330 0109                 	sts TXBUF+4,r19; pone el 0
+000172 e000                      	ldi r16,NULL
+000173 9300 010a                 	sts TXBUF+5,r16;pone null en el 6to byte 
+000175 9300 010b                 	sts TXBUF+6,r16;los dos que guarde por las dudas 
+000177 9300 010c                 	sts TXBUF+7,r16
+                                 	;;termina de cargar el buffer 
+                                 
+000179 9478                      	sei
+                                 loop:					
+00017a 9bf7                      	sbis GPIOR0,IS10MS	
+00017b 940c 017a                 	jmp loop
+00017d 940e 0085                 	call do10ms
+00017f 99f6                      	sbic GPIOR0,ISNEWBTN;PREGUNTA POR LA FLAG DE HACER ALGO
+000180 940e 00a1                 	call changeMode; llama a cambiar de modo
+000182 98f6                      	cbi GPIOR0,ISNEWBTN
+                                 sendDataTx:
+000183 9bf2                      	sbis GPIOR0,DATAREADY; si la flag DATAREADY ESTA HECHA sigue, sino loop  
+000184 940c 017a                 	jmp loop
+                                 	
+000186 9100 00c0                 	lds	r16, UCSR0A ; trae UCSR0A desde flash 
+000188 ff05                      	sbrs	r16, UDRE0 ; se fija si esya hecho el bit UDRE0 en UCSR0A (este bit esta en alto si el registro de datos esta vacío)
+000189 940c 017a                 	jmp	loop ; si ese bit esta en bajo hace loop 
+                                 
+00018b 6006                      	sbr	r16, TXC0 ; pobe en alto el bit TXC0 de r16 (TXC es la flag de transmision completada)
+00018c 9300 00c0                 	sts	UCSR0A, r16 ; pone en UCSR0A el r16 con el bit TXC0 en alto 
+                                 	;comienzo de transmision 
+00018e 9110 0125                 	lds r17,indexTx
+                                 	;segun el indice carga el byte del buffer que tiene que enviar  
+000190 e020                      	ldi r18,0;
+000191 1712                      	cp r17,r18
+000192 f419                      	brne PC+4
+000193 9100 0105                 	lds r16,TXBUF+0;
+000195 c02a                      	rjmp ReadyBuf
+000196 e021                      	ldi r18,1;
+000197 1712                      	cp r17,r18
+000198 f419                      	brne PC+4
+000199 9100 0106                 	lds r16,TXBUF+1;
+00019b c024                      	rjmp ReadyBuf
+00019c e022                      	ldi r18,2;
+00019d 1712                      	cp r17,r18
+00019e f419                      	brne PC+4
+00019f 9100 0107                 	lds r16,TXBUF+2;
+0001a1 c01e                      	rjmp ReadyBuf
+0001a2 e023                      	ldi r18,3;
+0001a3 1712                      	cp r17,r18
+0001a4 f419                      	brne PC+4
+0001a5 9100 0108                 	lds r16,TXBUF+3;
+0001a7 c018                      	rjmp ReadyBuf
+0001a8 e024                      	ldi r18,4;
+0001a9 1712                      	cp r17,r18
+0001aa f419                      	brne PC+4
+0001ab 9100 0109                 	lds r16,TXBUF+4;
+0001ad c012                      	rjmp ReadyBuf
+0001ae e025                      	ldi r18,5;
+0001af 1712                      	cp r17,r18
+0001b0 f419                      	brne PC+4
+0001b1 9100 010a                 	lds r16,TXBUF+5;
+0001b3 c00c                      	rjmp ReadyBuf
+0001b4 e026                      	ldi r18,6;
+0001b5 1712                      	cp r17,r18
+0001b6 f419                      	brne PC+4
+0001b7 9100 010b                 	lds r16,TXBUF+6;
+0001b9 c006                      	rjmp ReadyBuf
+0001ba e027                      	ldi r18,7;
+0001bb 1712                      	cp r17,r18
+0001bc f419                      	brne PC+4
+0001bd 9100 010c                 	lds r16,TXBUF+7;
+0001bf c000                      	rjmp ReadyBuf
+                                 
+                                 ReadyBuf:
+0001c0 9300 00c6                 	sts	UDR0, r16 ;manda el r16 a UDR0 para hacer la transmision 
+0001c2 9513                      	inc r17; incrementa en 1 r15 para luego pasarselo al indice 
+0001c3 9310 0125                 	sts indexTx,r17 ; queda incrementada la variable del indice 
+0001c5 e02a                      	ldi r18,'\n';
+0001c6 1702                      	cp r16,r18; compara el byte que acaba de enviar con '\n'
+0001c7 f009                      	breq PC+2 ; si son iguales salta a readyDataTx
+0001c8 940c 017a                 	jmp loop;
+                                 readyDataTx:
+                                 	
+0001ca 98f2                      	cbi GPIOR0,DATAREADY; resetea la flag 
+                                 	
+0001cb 940c 017a                 	jmp loop ; hace loop
                                  
 
 
@@ -1229,40 +1506,40 @@ counted separately from r26..r31 here.
 .dseg memory usage only counts static data declared with .byte
 
 "ATmega328P" register use summary:
-x  :   0 y  :   0 z  :   0 r0 :   2 r1 :   0 r2 :   6 r3 :   0 r4 :   0 
+x  :   0 y  :   0 z  :   0 r0 :   1 r1 :   0 r2 :   6 r3 :   0 r4 :   0 
 r5 :   0 r6 :   0 r7 :   0 r8 :   0 r9 :   0 r10:   4 r11:   5 r12:   2 
-r13:   2 r14:   1 r15:   1 r16:  31 r17:   4 r18:   0 r19:   0 r20:   0 
+r13:   2 r14:   1 r15:   1 r16:  60 r17:  35 r18:  42 r19:  72 r20:   0 
 r21:   0 r22:   0 r23:   0 r24:   2 r25:   2 r26:   0 r27:   0 r28:   0 
 r29:   0 r30:   0 r31:   0 
-Registers used: 12 out of 35 (34.3%)
+Registers used: 14 out of 35 (40.0%)
 
 "ATmega328P" instruction use summary:
 .lds  :   0 .sts  :   0 adc   :   1 add   :   1 adiw  :   0 and   :   0 
 andi  :   0 asr   :   0 bclr  :   0 bld   :   0 brbc  :   0 brbs  :   0 
-brcc  :   0 brcs  :   0 break :   0 breq  :   0 brge  :   0 brhc  :   0 
+brcc  :   0 brcs  :   0 break :   0 breq  :   1 brge  :   0 brhc  :   0 
 brhs  :   0 brid  :   0 brie  :   0 brlo  :   0 brlt  :   0 brmi  :   0 
-brne  :   2 brpl  :   0 brsh  :   0 brtc  :   0 brts  :   0 brvc  :   0 
-brvs  :   0 bset  :   0 bst   :   0 call  :   4 cbi   :   5 cbr   :   0 
-clc   :   2 clh   :   0 cli   :   1 cln   :   0 clr   :   2 cls   :   0 
-clt   :   0 clv   :   0 clz   :   0 com   :   0 cp    :   0 cpc   :   0 
-cpi   :   0 cpse  :   0 dec   :   2 eor   :   1 fmul  :   0 fmuls :   0 
-fmulsu:   0 icall :   0 ijmp  :   0 in    :   2 inc   :   0 jmp   :   4 
-ld    :   0 ldd   :   0 ldi   :  10 lds   :   2 lpm   :   0 lsl   :   0 
+brne  :  21 brpl  :   0 brsh  :   0 brtc  :   0 brts  :   0 brvc  :   0 
+brvs  :   0 bset  :   0 bst   :   0 call  :   5 cbi   :   6 cbr   :   0 
+clc   :   2 clh   :   0 cli   :   1 cln   :   0 clr   :   3 cls   :   0 
+clt   :   0 clv   :   0 clz   :   0 com   :   0 cp    :  20 cpc   :   0 
+cpi   :   0 cpse  :   0 dec   :   2 eor   :   0 fmul  :   0 fmuls :   0 
+fmulsu:   0 icall :   0 ijmp  :   0 in    :   1 inc   :   2 jmp   :   7 
+ld    :   0 ldd   :   0 ldi   :  76 lds   :  14 lpm   :   0 lsl   :   0 
 lsr   :   0 mov   :   1 movw  :   0 mul   :   0 muls  :   0 mulsu :   0 
-neg   :   0 nop   :   0 or    :   0 ori   :   0 out   :   4 pop   :   7 
-push  :   7 rcall :   0 ret   :  10 reti  :   1 rjmp  :   8 rol   :   4 
-ror   :   0 sbc   :   1 sbci  :   0 sbi   :   4 sbic  :   4 sbis  :   3 
-sbiw  :   0 sbr   :   0 sbrc  :   0 sbrs  :   1 sec   :   1 seh   :   0 
+neg   :   0 nop   :   0 or    :   0 ori   :   0 out   :   3 pop   :   7 
+push  :   7 rcall :   0 ret   :  20 reti  :   1 rjmp  :  27 rol   :   4 
+ror   :   0 sbc   :   1 sbci  :   0 sbi   :  14 sbic  :   3 sbis  :   4 
+sbiw  :   0 sbr   :   1 sbrc  :   0 sbrs  :   2 sec   :   1 seh   :   0 
 sei   :   1 sen   :   0 ser   :   0 ses   :   0 set   :   0 sev   :   0 
-sez   :   0 sleep :   0 spm   :   0 st    :   0 std   :   0 sts   :   9 
+sez   :   0 sleep :   0 spm   :   0 st    :   0 std   :   0 sts   :  63 
 sub   :   1 subi  :   0 swap  :   0 tst   :   0 wdr   :   0 
-Instructions used: 31 out of 113 (27.4%)
+Instructions used: 34 out of 113 (30.1%)
 
 "ATmega328P" memory use summary [bytes]:
 Segment   Begin    End      Code   Data   Used    Size   Use%
 ---------------------------------------------------------------
-[.cseg] 0x000000 0x00015a    250      0    250   32768   0.8%
-[.dseg] 0x000100 0x00011c      0     28     28    2048   1.4%
+[.cseg] 0x000000 0x00039a    826      0    826   32768   2.5%
+[.dseg] 0x000100 0x000126      0     38     38    2048   1.9%
 [.eseg] 0x000000 0x000004      0      4      4    1024   0.4%
 
 Assembly complete, 0 errors, 0 warnings
