@@ -158,7 +158,7 @@ ini_timer1:; para inicializar al timer
 	sts OCR1AL,r16 ; parte baja del comparador 
 	ldi	r16, 0b00000010; habilita el compare A 
 	sts	TIMSK1, r16
-	lds	r16, TIFR1; CONSULTAR SUPONGO SALVA ESTADO TIFR1
+	lds	r16, TIFR1
 	sts	TIFR1, r16
 	
 	ldi r16,0b00001100
@@ -438,7 +438,7 @@ sendDataTx:
 	jmp loop
 	
 	lds	r16, UCSR0A ; trae UCSR0A desde flash 
-	sbrs	r16, UDRE0 ; se fija si esya hecho el bit UDRE0 en UCSR0A (este bit esta en alto si el registro de datos esta vacío)
+	sbrs	r16, UDRE0 ; se fija si esya hecho el bit UDRE0 en UCSR0A (este bit esta en alto si el registro de datos esta vacÃ­o)
 	jmp	loop ; si ese bit esta en bajo hace loop 
 
 	sbr	r16, TXC0 ; pobe en alto el bit TXC0 de r16 (TXC es la flag de transmision completada)
